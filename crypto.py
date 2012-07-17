@@ -1,26 +1,43 @@
 from datetime import datetime, timedelta
 import hashlib
+import M2Crypto
 import random
 
-# a ** k mod m
-def power_mod(a, k, m):
-    reduced = a % m
-    r = 1
-    exponent = k
-    while exponent > 0:
-        if (exponent % 2 == 1):
-            r = r * reduced
-            r = r % m
+def validate(p, q, g):
+    p_length = p.bit_length()
 
-        exponent = exponent / 2
-        r = (r * r) % m
+    if (p_length % 64) != 0:
+        print "p's bit length not a mulitple of 64"
+        return False
 
-    return r
+    if not (p_length >= 512 and p_length <= 1024):
+        print "p's bit length is not between 512 and 1024"
+        return False
 
-def generate_cert(identity, public_key, p, q, g, ca_sk, ca_pk):   
-    if public_key.bit_length() != 1024:
-        raise ValueError('Private key not 1024 bits')
+    # TODO: Make sure p is prime
 
+    quotient, remainder = divmod(p - 1, q)
+
+    if remainder != 0:
+        print "q is not a prime factor of p"
+        return False
+
+    # g = u^{(p-1)/q}
+    
+    u = g ** (1/float(quotient))
+
+    if not (u > 0 and u < p):
+        print "g is invalid"
+        return False
+        
+    return True
+
+def int2mpi(p):
+    bn = M2Crypto.m2.hex_to_bn("%x" % p)
+    mpi = M2Crypto.m2.bn_to_mpi(bn)
+    return mpi
+
+def generate_cert(identity, public_key, p, q, g, ca_sk, ca_pk): 
     if len(identity) > 10:
         raise ValueError('Identity too long')
 

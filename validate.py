@@ -3,34 +3,7 @@
 import sys
 from optparse import OptionParser
 
-def validate(p, q, g):
-    p_length = p.bit_length()
 
-    if (p_length % 64) != 0:
-        print "p's bit length not a mulitple of 64"
-        return False
-
-    if not (p_length >= 512 and p_length <= 1024):
-        print "p's bit length is not between 512 and 1024"
-        return False
-
-    # TODO: Make sure p is prime
-
-    quotient, remainder = divmod(p - 1, q)
-
-    if remainder != 0:
-        print "q is not a prime factor of p"
-        return False
-
-    # g = u^{(p-1)/q}
-    
-    u = g ** (1/float(quotient))
-
-    if not (u > 0 and u < p):
-        print "g is invalid"
-        return False
-        
-    return True
 
 if __name__ == '__main__':
     #usage = "usage: %prog p q g"    
