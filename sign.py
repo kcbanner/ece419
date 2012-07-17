@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 
 import sys
-from crypto import validate, generate_cert, sign_cert
+from crypto import validate, generate_cert, sign_cert, verify_cert
 import params
 
 p = params.p
@@ -20,9 +20,17 @@ else:
 print "Generating cert: OK"
 cert = generate_cert('kcbanner', 'test')
 
-print "Signing cert: ",
+print "Signing cert:",
 r, s = sign_cert(cert, ca_pk, g, p, q, ca_sk)
 
 print "\nCertifcate: %s" % cert
 print "r: %s" % r
 print "s: %s" % s
+
+print "Verifying cert:",
+
+verified = verify_cert(cert, r, s, ca_pk, g, p, q)
+if verified:
+    print "OK"
+else:
+    print "Fail"    

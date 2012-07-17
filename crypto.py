@@ -40,14 +40,14 @@ def validate(p, q, g):
         print "q is not a prime factor of p"
         return False
 
-    # g = u^{(p-1)/q}  
-    
-    #u = power_mod(g, 1 / _number_new.exact_div(p - 1, q), p)
-    #print u
+    # g = u^{(p-1)/q}
 
-    #if not (u > 0 and u < p):
-    #    print "g is invalid"
-    #    return False
+    u = power_mod(g, 1 / _number_new.exact_div(p - 1, q), p)
+    print u
+
+    if not (u > 0 and u < p):
+        print "g is invalid"
+        return False
         
     return True
 
@@ -60,9 +60,9 @@ def generate_cert(identity, data):
 
     return data_field
 
-def sign_cert(data, ca_pk, g, p, q, ca_sk):
+def sign_cert(cert, ca_pk, g, p, q, ca_sk):
     key = DSA.construct((ca_pk, g, p, q, ca_sk))
-    hash = SHA.new(data).digest()
+    hash = SHA.new(cert).digest()
     k = random.StrongRandom().randint(1, key.q - 1)
     signature = key.sign(hash, k)
 
@@ -72,3 +72,9 @@ def sign_cert(data, ca_pk, g, p, q, ca_sk):
         print "Failed"
 
     return signature
+
+def verify_cert(cert, r, s, ca_pk, g, p ,q):
+    key = DSA.construct((ca_pk, g, p, q))
+    hash = SHA.new(cert).digest()
+    
+    return key.verify(hash, (r, s))
