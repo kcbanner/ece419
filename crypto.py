@@ -1,7 +1,23 @@
 from datetime import datetime, timedelta
-import hashlib
-import M2Crypto
-import random
+from Crypto.Util import number, _number_new
+from Crypto.Random import random
+from Crypto.PublicKey import DSA
+from Crypto.Hash import SHA
+
+# a ** k mod m
+def power_mod(a, k, m):
+    reduced = a % m
+    r = 1
+    exponent = k
+    while exponent > 0:
+        if (exponent % 2 == 1):
+            r = r * reduced
+            r = r % m
+
+        exponent = exponent / 2
+        r = (r * r) % m
+
+    return r
 
 def validate(p, q, g):
     p_length = p.bit_length()
@@ -14,50 +30,45 @@ def validate(p, q, g):
         print "p's bit length is not between 512 and 1024"
         return False
 
-    # TODO: Make sure p is prime
+    if not number.isPrime(p):
+        print "p not prime"
+        return False
 
-    quotient, remainder = divmod(p - 1, q)
-
-    if remainder != 0:
+    try:
+        _number_new.exact_div(p - 1, q)
+    except ValueError:
         print "q is not a prime factor of p"
         return False
 
-    # g = u^{(p-1)/q}
+    # g = u^{(p-1)/q}  
     
-    u = g ** (1/float(quotient))
+    #u = power_mod(g, 1 / _number_new.exact_div(p - 1, q), p)
+    #print u
 
-    if not (u > 0 and u < p):
-        print "g is invalid"
-        return False
+    #if not (u > 0 and u < p):
+    #    print "g is invalid"
+    #    return False
         
     return True
 
-def int2mpi(p):
-    bn = M2Crypto.m2.hex_to_bn("%x" % p)
-    mpi = M2Crypto.m2.bn_to_mpi(bn)
-    return mpi
-
-def generate_cert(identity, public_key, p, q, g, ca_sk, ca_pk): 
+def generate_cert(identity, data): 
     if len(identity) > 10:
         raise ValueError('Identity too long')
 
     expiry = datetime.utcnow() + timedelta(days=365)
-    data_field = identity + str(public_key) + expiry.strftime('%d-%m-%y')
+    data_field = identity + str(data) + expiry.strftime('%d-%m-%y')
 
-    #k = random.randint(1, q - 1)
-    k = 791602866227620675999682610123926798725884311007
+    return data_field
 
-    # r = g ** k mod q
-    r = power_mod(g, k, q)
+def sign_cert(data, ca_pk, g, p, q, ca_sk):
+    key = DSA.construct((ca_pk, g, p, q, ca_sk))
+    hash = SHA.new(data).digest()
+    k = random.StrongRandom().randint(1, key.q - 1)
+    signature = key.sign(hash, k)
 
-    hash = hashlib.sha1()
-    hash.update(data_field)
-    digest = int(hash.hexdigest(), 16)
+    if key.verify(hash, signature):
+        print "OK"
+    else:
+        print "Failed"
 
-    # h(m) = xr + ks (mod q)
-    # get k^-1 mod q    
-
-    k_inv = power_mod(k, q - 2, q)
-    s = ((digest - (ca_sk * r)) / k_inv) % q
-
-    print r, s
+    return signature
